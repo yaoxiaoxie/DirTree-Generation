@@ -1,0 +1,18 @@
+{
+  "project_root": {
+    "source_code": {
+      "app": null,
+      "core": null,
+      "utils": null
+    },
+    "documents": {
+      "api": null,
+      "design_docs": null
+    },
+    "scripts": null
+  },
+  "deploy": {
+    "production": null,
+    "staging": null
+  }
+}

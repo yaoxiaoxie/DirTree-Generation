@@ -1,0 +1,26 @@
+wen:
+  relax_tool:
+    game_tool:
+      kuro:
+        mc:
+          子主题1212:
+      odd:
+      wy:
+    odd_tool:
+app:
+  brower_tool:
+    brower_app:
+      chrome_dow:
+      chrome_fil:
+      edge_dow:
+      edge_fil:
+      firefox_dow:
+      firefox_fil:
+  cod_tool:
+    bigModel_tool:
+      bigModel_files:
+      cherry_app:
+      cherry_fils:
+      ollama_app:
+      ollama_files:
+      lobe_app:
