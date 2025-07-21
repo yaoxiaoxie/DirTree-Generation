@@ -1,0 +1,319 @@
+{
+    "app": {
+        "brower_tool": {
+            "brower_app": {
+                "chrome_dow": null,
+                "chrome_fil": null,
+                "edge_dow": null,
+                "edge_fil": null,
+                "firefox_dow": null,
+                "firefox_fil": null
+            }
+        },
+        "cod_tool": {
+            "bigModel_tool": {
+                "bigModel_files": null,
+                "cherry_app": null,
+                "cherry_fils": null,
+                "ollama_app": null,
+                "ollama_files": null,
+                "lobe_app": null
+            },
+            "data_tool": {
+                "mysal_app": null,
+                "redis_app": null
+            },
+            "environ_tool": {
+                "go": null,
+                "hugo": null,
+                "jav": null,
+                "node": {
+                    "nvm_app": null,
+                    "nvm_fil": null
+                },
+                "nv": {
+                    "cuda_app": null
+                },
+                "pyt": null
+            },
+            "git_tool": {
+                "git": {
+                    "Git": null,
+                    "git_app": null
+                }
+            },
+            "odd_la": {
+                "docker_files": null,
+                "graphviz_app": null,
+                "orc_app": {
+                    "Tesseract-ORC": null,
+                    "tesseract_app": null
+                },
+                "tb_tool": {
+                    "TBQuant": null
+                },
+                "test_job": {
+                    "ws_app": null
+                },
+                "trae_app": null,
+                "trae_fil": null
+            },
+            "program_tool": {
+                "jet": {
+                    "clion": {
+                        "clion_app": null,
+                        "clion_fil": null
+                    },
+                    "datagrip": {
+                        "datagrip_app": null,
+                        "datagrip_fil": null
+                    },
+                    "goland": {
+                        "goland_app": null,
+                        "goland_fil": null
+                    },
+                    "idea": {
+                        "idea_app": null,
+                        "idea_fil": null
+                    },
+                    "pycharm": {
+                        "pycharm_app": null,
+                        "pycharm_fil": null
+                    },
+                    "webstorm": {
+                        "webstorm_app": null,
+                        "webstorm_fil": null
+                    }
+                },
+                "mic": {
+                    "vscode": {
+                        "vscode_app": null,
+                        "vscode_fil": null
+                    }
+                },
+                "ora": {
+                    "mysql": {
+                        "mysql_app": null,
+                        "mysql_fil": null
+                    }
+                }
+            },
+            "remote_tool": {
+                "finallshell_app": null,
+                "xftp_app": null,
+                "xhell_app": null
+            },
+            "shared_code": {
+                "20250308": {
+                    "black": null
+                }
+            },
+            "test_tool": {
+                "apifox": {
+                    "apifox_app": null,
+                    "apifox_fil": null
+                },
+                "jenkin": {
+                    "jenkin_app": null
+                },
+                "postman": {
+                    "postman_app": null,
+                    "postman_tool": null
+                }
+            },
+            "vm_tool": {
+                "broad": {
+                    "vmware": {
+                        "vm_app": null,
+                        "vm_fil": null,
+                        "vm_os": null,
+                        "vm_files": null,
+                        "sfub64": null
+                    }
+                },
+                "docker": {
+                    "docker_app": null,
+                    "docker_fil": null,
+                    "dify_main": null
+                }
+            },
+            "web_tool": {
+                "fiddler": {
+                    "fiddler_app": null
+                },
+                "tomcat": {
+                    "lis": null,
+                    "tomcat9": null
+                }
+            }
+        },
+        "disc_tool": {
+            "search_tool": {
+                "everything_app": null,
+                "rubick_app": null
+            },
+            "uninstall_tool": {
+                "revo_app": null,
+                "total_app": null
+            },
+            "unzip_tool": {
+                "7z_app": null,
+                "winrar_app": null
+            }
+        },
+        "download_tool": {
+            "dow_tool": {
+                "baidu": {
+                    "baidu_app": null,
+                    "baidu_fil": null
+                },
+                "motorix": {
+                    "motrix_app": null,
+                    "motrix_fil": null
+                },
+                "quark": {
+                    "quark_app": null,
+                    "quark_fil": null
+                },
+                "xunlei": {
+                    "xunlei_app": null,
+                    "xunlei_fil": null
+                }
+            }
+        },
+        "nvidia_tool": {
+            "nvidia_tool": {
+                "gf_app": null
+            }
+        },
+        "relax_tool": {
+            "contact_tool": {
+                "ali": {
+                    "ding_app": null,
+                    "ding_dow": null
+                },
+                "tencent": {
+                    "tencentMeet": {
+                        "tencentMeet_app": null,
+                        "tencentMeet_dow": null
+                    },
+                    "tim": {
+                        "tim_app": null,
+                        "tim_dow": null
+                    },
+                    "weChat": {
+                        "weChat_app": null,
+                        "weChat_dow": null
+                    }
+                }
+            },
+            "distance_tool": {
+                "parsec_app": null,
+                "spacedesk_app": null,
+                "sunshine_app": null,
+                "todesk_app": null,
+                "uuRemote_App": null,
+                "vivoRemote_app": null,
+                "vivoRemote_fil": null
+            },
+            "game_tool": {
+                "oopz_app": null,
+                "steam_app": null,
+                "up_app": null,
+                "uu_app": null
+            },
+            "music_tool": {
+                "qqMusic": {
+                    "qqmusic_app": null,
+                    "qqmusic_dow": null
+                },
+                "spotify": {
+                    "spotify_app": null,
+                    "spotify_dow": null
+                },
+                "wYy": {
+                    "wyy_app": null,
+                    "wyy_dow": null
+                }
+            },
+            "moNiQi_tool": {
+                "leidian_app": null,
+                "mumu12_app": null
+            },
+            "note_tool": {
+                "anxReader_app": null,
+                "notion_app": null,
+                "obsidian_app": null,
+                "obsidian_data": null,
+                "Readest_app": null,
+                "typora_app": null
+            },
+            "odd": {
+                "epic": null,
+                "tel": {
+                    "tel_app": null,
+                    "tel_fil": null
+                }
+            },
+            "pic_tool": {
+                "upscayl_app": null
+            },
+            "video_tool": {
+                "blbl_app": null,
+                "blbl_dow": null,
+                "potplayer_app": null,
+                "vlc_app": null
+            },
+            "xingneng_tool": {
+                "msi_app": null,
+                "msi2_app": null
+            }
+        },
+        "security_tool": {
+            "sec_tool": {
+                "qqsec_app": null
+            }
+        }
+    },
+    "wen": {
+        "blog_fil": {
+            "fil": null,
+            "fil_sec": null,
+            "sec": null
+        },
+        "blog_tool": {
+            "fil": null,
+            "wen": null
+        },
+        "cod_fil": {
+            "jav": null,
+            "pyc": null,
+            "vscod": null
+        },
+        "dan_tool": {
+            "cla": null,
+            "neo": null
+        },
+        "new_wen": {
+            "ten_wen": null,
+            "大三上": null,
+            "大三下": null,
+            "润道": null
+        },
+        "relax_tool": {
+            "game_tool": {
+                "kuro": {
+                    "mc": {
+                        "子主题1212": null
+                    }
+                },
+                "odd": null,
+                "wy": null
+            },
+            "odd_tool": null
+        },
+        "save_fil": {
+            "wendang": null
+        }
+    }
+}
