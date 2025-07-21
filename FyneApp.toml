@@ -2,7 +2,7 @@ Website = "https://example.com"
 
 [Details]
   Icon = "Icon.png"
-  Name = "treetool V3.0"
+  Name = "treetool V3.0.1"
   ID = "com.example.dircreator"
-  Version = "3.0.0"
-  Build = 4
+  Version = "3.0.1"
+  Build = 6
