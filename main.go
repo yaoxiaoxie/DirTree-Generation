@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"image/color" // <-- 已添加
+	"image/color"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,7 +17,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"gopkg.in/yaml.v3" // <-- 1. 引入 YAML 库
+	"gopkg.in/yaml.v3"
 )
 
 // myTheme is a custom theme that inherits from the light theme.
@@ -38,10 +38,20 @@ func (m *myTheme) Size(name fyne.ThemeSizeName) float32       { return theme.Lig
 
 // parseStructureFromFile 解析 JSON 或 YAML 文件为 map[string]interface{}
 func parseStructureFromFile(filePath string) (map[string]interface{}, error) {
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("配置文件不存在：%s\n请确认文件路径是否正确", filePath)
+	}
+
 	// 读取文件内容
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("读取文件失败: %w", err)
+		return nil, fmt.Errorf("无法读取配置文件：%s\n错误原因：%v\n请检查文件权限是否足够", filePath, err)
+	}
+
+	// 检查文件是否为空
+	if len(data) == 0 {
+		return nil, fmt.Errorf("配置文件为空：%s\n请确认文件包含有效的配置内容", filePath)
 	}
 
 	var structure map[string]interface{}
@@ -51,15 +61,20 @@ func parseStructureFromFile(filePath string) (map[string]interface{}, error) {
 	case ".json":
 		err = json.Unmarshal(data, &structure)
 		if err != nil {
-			return nil, fmt.Errorf("解析 JSON 失败: %w", err)
+			return nil, fmt.Errorf("JSON 格式解析失败：%s\n错误详情：%v\n\n请检查：\n• JSON 语法是否正确\n• 括号、引号是否匹配\n• 是否有多余的逗号", filePath, err)
 		}
 	case ".yaml", ".yml":
 		err = yaml.Unmarshal(data, &structure)
 		if err != nil {
-			return nil, fmt.Errorf("解析 YAML 失败: %w", err)
+			return nil, fmt.Errorf("YAML 格式解析失败：%s\n错误详情：%v\n\n请检查：\n• YAML 缩进是否正确（使用空格，不使用制表符）\n• 冒号后是否有空格\n• 特殊字符是否需要引号", filePath, err)
 		}
 	default:
-		return nil, fmt.Errorf("不支持的配置文件格式: %s (仅支持 .json, .yaml, .yml)", ext)
+		return nil, fmt.Errorf("不支持的配置文件格式：%s\n\n支持的格式：\n• .json - JSON 格式\n• .yaml - YAML 格式\n• .yml - YAML 格式\n\n请将文件保存为支持的格式后重试", ext)
+	}
+
+	// 检查解析后的结构是否为空
+	if len(structure) == 0 {
+		return nil, fmt.Errorf("配置文件解析后为空：%s\n请确认文件包含有效的目录结构配置", filePath)
 	}
 
 	return structure, nil
@@ -67,17 +82,69 @@ func parseStructureFromFile(filePath string) (map[string]interface{}, error) {
 
 func createDirs(basePath string, structure map[string]interface{}) []string {
 	var logs []string
+
+	// 检查基础路径是否有效
+	if basePath == "" {
+		logs = append(logs, "错误：目标路径为空，无法创建目录\n")
+		return logs
+	}
+
+	// 检查基础路径是否存在
+	if _, err := os.Stat(basePath); os.IsNotExist(err) {
+		logs = append(logs, fmt.Sprintf("警告：目标路径不存在，将尝试创建：%s\n", basePath))
+		if err := os.MkdirAll(basePath, 0755); err != nil {
+			logs = append(logs, fmt.Sprintf("错误：无法创建目标路径 %s\n原因：%v\n", basePath, err))
+			return logs
+		}
+		logs = append(logs, fmt.Sprintf("成功：已创建目标路径 %s\n", basePath))
+	}
+
 	for dir, subDirs := range structure {
-		fullPath := filepath.Join(basePath, dir)
-		err := os.MkdirAll(fullPath, 0755)
-		if err != nil {
-			log.Printf("创建目录失败: %s (错误: %v)\n", fullPath, err)
-			logs = append(logs, fmt.Sprintf("创建目录失败: %s (错误: %v)\n", fullPath, err))
-		} else {
-			log.Printf("创建目录: %s\n", fullPath)
-			logs = append(logs, fmt.Sprintf("创建目录: %s\n", fullPath))
+		// 验证目录名称
+		if dir == "" {
+			logs = append(logs, "跳过：发现空的目录名称\n")
+			continue
 		}
 
+		// 检查目录名称中的非法字符
+		if strings.ContainsAny(dir, `<>:"|?*`) {
+			logs = append(logs, fmt.Sprintf("跳过：目录名包含非法字符 \"%s\"\n", dir))
+			continue
+		}
+
+		fullPath := filepath.Join(basePath, dir)
+
+		// 检查路径长度（Windows 限制）
+		if runtime.GOOS == "windows" && len(fullPath) > 260 {
+			logs = append(logs, fmt.Sprintf("跳过：路径过长（超过260字符）\"%s\"\n", fullPath))
+			continue
+		}
+
+		err := os.MkdirAll(fullPath, 0755)
+		if err != nil {
+			// 详细的错误分析
+			errorMsg := fmt.Sprintf("创建目录失败：%s\n", fullPath)
+			if os.IsPermission(err) {
+				errorMsg += "原因：权限不足，请检查是否有写入权限\n"
+			} else if os.IsExist(err) {
+				errorMsg += "原因：目录已存在（这通常不是错误）\n"
+				logs = append(logs, fmt.Sprintf("目录已存在：%s\n", fullPath))
+				// 如果目录已存在，继续处理子目录
+				if subDirsMap, ok := subDirs.(map[string]interface{}); ok && subDirsMap != nil {
+					logs = append(logs, createDirs(fullPath, subDirsMap)...)
+				}
+				continue
+			} else {
+				errorMsg += fmt.Sprintf("原因：%v\n", err)
+			}
+			log.Printf(errorMsg)
+			logs = append(logs, errorMsg)
+		} else {
+			log.Printf("创建目录：%s\n", fullPath)
+			logs = append(logs, fmt.Sprintf("✓ 成功创建：%s\n", fullPath))
+		}
+
+		// 递归处理子目录
 		if subDirsMap, ok := subDirs.(map[string]interface{}); ok && subDirsMap != nil {
 			logs = append(logs, createDirs(fullPath, subDirsMap)...)
 		}
@@ -92,11 +159,11 @@ func main() {
 	myApp.Settings().SetTheme(&myTheme{})
 
 	myWindow := myApp.NewWindow("目录树生成工具")
-	myWindow.Resize(fyne.NewSize(600, 500)) // 稍微调高一点窗口以容纳新组件
+	myWindow.Resize(fyne.NewSize(600, 500))
 
 	// --- 状态变量 ---
 	var targetPath string
-	var loadedDirStructure map[string]interface{} // <-- 2. 用于存储从文件加载的结构
+	var loadedDirStructure map[string]interface{}
 
 	// --- GUI组件 ---
 	title := widget.NewLabel("=== 目录树生成工具 ===")
@@ -104,33 +171,47 @@ func main() {
 	title.Alignment = fyne.TextAlignCenter
 
 	pathLabel := widget.NewLabel("目标路径: 未选择")
-	configLabel := widget.NewLabel("配置文件: 未加载") // <-- 3. 新增标签显示配置文件路径
+	configLabel := widget.NewLabel("配置文件: 未加载")
 
-	// --- ↓↓↓ 这里是修改的部分 ↓↓↓ ---
 	selectBtn := widget.NewButton("选择目标文件夹", func() {
 		folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 			if err != nil {
-				dialog.ShowError(err, myWindow)
+				// 优化文件夹选择错误提示
+				errorMsg := fmt.Sprintf("选择文件夹时发生错误：\n%v\n\n请重试或选择其他文件夹", err)
+				dialog.ShowError(fmt.Errorf(errorMsg), myWindow)
 				return
 			}
 			if uri == nil {
 				return
 			}
-			targetPath = uri.Path()
+
+			// 验证选择的路径
+			selectedPath := uri.Path()
+			if selectedPath == "" {
+				dialog.ShowError(fmt.Errorf("选择的路径无效\n请重新选择一个有效的文件夹"), myWindow)
+				return
+			}
+
+			// 检查路径权限
+			testFile := filepath.Join(selectedPath, ".permission_test")
+			if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+				dialog.ShowError(fmt.Errorf("选择的文件夹没有写入权限：\n%s\n\n请选择其他文件夹或检查权限设置", selectedPath), myWindow)
+				return
+			}
+			os.Remove(testFile) // 清理测试文件
+
+			targetPath = selectedPath
 			pathLabel.SetText("目标路径: " + targetPath)
 		}, myWindow)
 
 		// 使用兼容旧版本的代码来定位根目录
 		var rootPath string
 		if runtime.GOOS == "windows" {
-			// 在 Windows 上，假定 C:\ 是主根目录
 			rootPath = "C:\\"
 		} else {
-			// 在 Linux 或 macOS 上，根目录是 /
 			rootPath = "/"
 		}
 
-		// 检查路径是否存在，并尝试设置为默认位置
 		if _, err := os.Stat(rootPath); err == nil {
 			uri, err := storage.ListerForURI(storage.NewFileURI(rootPath))
 			if err == nil {
@@ -142,33 +223,44 @@ func main() {
 
 		folderDialog.Show()
 	})
-	// --- ↑↑↑ 修改结束 ↑↑↑ ---
 
-	// <-- 4. 新增加载配置文件的按钮 -->
 	loadConfigBtn := widget.NewButton("加载配置文件", func() {
 		fileDialog := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 			if err != nil {
-				dialog.ShowError(err, myWindow)
+				// 优化文件打开错误提示
+				errorMsg := fmt.Sprintf("打开配置文件时发生错误：\n%v\n\n请检查：\n• 文件是否存在\n• 是否有读取权限\n• 文件是否被其他程序占用", err)
+				dialog.ShowError(fmt.Errorf(errorMsg), myWindow)
 				return
 			}
 			if reader == nil {
-				// 用户取消
+				// 用户取消选择
 				return
 			}
 
 			filePath := reader.URI().Path()
+			if filePath == "" {
+				dialog.ShowError(fmt.Errorf("获取文件路径失败\n请重新选择配置文件"), myWindow)
+				return
+			}
+
 			structure, err := parseStructureFromFile(filePath)
 			if err != nil {
+				// 显示详细的解析错误信息
 				dialog.ShowError(err, myWindow)
-				loadedDirStructure = nil // 解析失败则清空
+				loadedDirStructure = nil
 				configLabel.SetText("配置文件: 加载失败")
 				return
 			}
 
 			// 解析成功
 			loadedDirStructure = structure
-			configLabel.SetText("配置文件: " + filepath.Base(filePath)) // 只显示文件名，更简洁
-			dialog.ShowInformation("成功", "配置文件已成功加载！", myWindow)
+			fileName := filepath.Base(filePath)
+			configLabel.SetText("配置文件: " + fileName)
+
+			// 显示加载成功信息，包含统计
+			totalDirs := countTotalDirectories(structure)
+			successMsg := fmt.Sprintf("配置文件加载成功！\n\n文件：%s\n预计创建目录数量：%d", fileName, totalDirs)
+			dialog.ShowInformation("加载成功", successMsg, myWindow)
 
 		}, myWindow)
 
@@ -176,19 +268,15 @@ func main() {
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
 			desktopPath := filepath.Join(homeDir, "Desktop")
-			uri, err := storage.ListerForURI(storage.NewFileURI(desktopPath))
-			if err == nil {
-				// 如果成功，将位置设置为桌面
-				fileDialog.SetLocation(uri)
-			} else {
-				log.Println("无法定位到桌面目录:", err)
+			if _, err := os.Stat(desktopPath); err == nil {
+				uri, err := storage.ListerForURI(storage.NewFileURI(desktopPath))
+				if err == nil {
+					fileDialog.SetLocation(uri)
+				}
 			}
-		} else {
-			log.Println("无法获取用户主目录:", err)
 		}
-		// --- ↑↑↑ 新增的核心逻辑 ↑↑↑ ---
 
-		// 设置文件过滤器，只显示 JSON 和 YAML 文件
+		// 设置文件过滤器
 		fileDialog.SetFilter(storage.NewExtensionFileFilter([]string{".json", ".yaml", ".yml"}))
 		fileDialog.Show()
 	})
@@ -200,36 +288,62 @@ func main() {
 	output.Disable()
 
 	createBtn := widget.NewButton("生成目录树", func() {
-		// --- 5. 更新生成逻辑 ---
+		// 验证必要条件
 		if targetPath == "" {
-			dialog.ShowError(fmt.Errorf("请先选择目标文件夹"), myWindow)
+			dialog.ShowError(fmt.Errorf("请先选择目标文件夹\n\n步骤：\n1. 点击 \"选择目标文件夹\" 按钮\n2. 选择要创建目录树的位置\n3. 确认选择"), myWindow)
 			return
 		}
-		// 检查配置是否已加载
+
 		if loadedDirStructure == nil {
-			dialog.ShowError(fmt.Errorf("请先加载一个有效的配置文件"), myWindow)
+			dialog.ShowError(fmt.Errorf("请先加载配置文件\n\n步骤：\n1. 点击 \"加载配置文件\" 按钮\n2. 选择 JSON 或 YAML 格式的配置文件\n3. 确认文件加载成功"), myWindow)
 			return
 		}
 
-		output.Enable()
-		output.SetText("开始生成目录树...\n")
-		// 使用加载的结构，而不是硬编码的
-		logMessages := createDirs(targetPath, loadedDirStructure)
-		output.SetText(output.Text + strings.Join(logMessages, ""))
-		output.SetText(output.Text + "\n目录树生成完成！")
-		output.Disable()
+		// 最终确认
+		confirmMsg := fmt.Sprintf("即将在以下位置创建目录树：\n%s\n\n预计创建 %d 个目录\n\n是否继续？", targetPath, countTotalDirectories(loadedDirStructure))
+		confirmDialog := dialog.NewConfirm("确认创建", confirmMsg, func(confirmed bool) {
+			if !confirmed {
+				return
+			}
 
-		dialog.ShowInformation("成功", "目录树已成功生成！", myWindow)
+			output.Enable()
+			output.SetText("开始生成目录树...\n\n")
+
+			logMessages := createDirs(targetPath, loadedDirStructure)
+			allLogs := strings.Join(logMessages, "")
+			output.SetText(output.Text + allLogs)
+
+			// 统计结果
+			successCount := strings.Count(allLogs, "✓ 成功创建")
+			errorCount := strings.Count(allLogs, "错误：") + strings.Count(allLogs, "跳过：")
+
+			summary := fmt.Sprintf("\n========== 生成完成 ==========\n成功创建：%d 个目录\n", successCount)
+			if errorCount > 0 {
+				summary += fmt.Sprintf("跳过/失败：%d 个目录\n", errorCount)
+			}
+			summary += "=============================\n"
+
+			output.SetText(output.Text + summary)
+			output.Disable()
+
+			if errorCount == 0 {
+				dialog.ShowInformation("生成成功", fmt.Sprintf("目录树已成功生成！\n\n共创建了 %d 个目录", successCount), myWindow)
+			} else {
+				dialog.ShowInformation("生成完成", fmt.Sprintf("目录树生成完成！\n\n成功：%d 个目录\n跳过/失败：%d 个目录\n\n请查看详细信息了解具体情况", successCount, errorCount), myWindow)
+			}
+		}, myWindow)
+
+		confirmDialog.Show()
 	})
 
-	// --- 6. 更新布局以包含新组件 ---
+	// 布局
 	topContent := container.NewVBox(
 		title,
 		pathLabel,
-		configLabel, // 添加新标签
-		container.NewGridWithColumns(2, selectBtn, loadConfigBtn), // 放入网格布局
+		configLabel,
+		container.NewGridWithColumns(2, selectBtn, loadConfigBtn),
 		widget.NewSeparator(),
-		createBtn, // 将生成按钮单独放在一行，更清晰
+		createBtn,
 		widget.NewSeparator(),
 		widget.NewLabel("生成信息:"),
 	)
@@ -244,4 +358,16 @@ func main() {
 
 	myWindow.SetContent(content)
 	myWindow.ShowAndRun()
+}
+
+// 辅助函数：计算总目录数量
+func countTotalDirectories(structure map[string]interface{}) int {
+	count := 0
+	for _, subDirs := range structure {
+		count++
+		if subDirsMap, ok := subDirs.(map[string]interface{}); ok && subDirsMap != nil {
+			count += countTotalDirectories(subDirsMap)
+		}
+	}
+	return count
 }
