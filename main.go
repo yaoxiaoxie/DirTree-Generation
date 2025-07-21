@@ -80,7 +80,7 @@ func parseStructureFromFile(filePath string) (map[string]interface{}, error) {
 	return structure, nil
 }
 
-func createDirs(basePath string, structure map[string]interface{}) []string {
+func createDirs(basePath string, structure map[string]interface{}, enablePrefix bool, prefix string) []string {
 	var logs []string
 
 	// 检查基础路径是否有效
@@ -106,13 +106,20 @@ func createDirs(basePath string, structure map[string]interface{}) []string {
 			continue
 		}
 
-		// 检查目录名称中的非法字符
-		if strings.ContainsAny(dir, `<>:"|?*`) {
-			logs = append(logs, fmt.Sprintf("跳过：目录名包含非法字符 \"%s\"\n", dir))
+		// 应用前缀
+		finalDirName := dir
+		if enablePrefix && prefix != "" {
+			finalDirName = prefix + dir
+			logs = append(logs, fmt.Sprintf("应用前缀：\"%s\" -> \"%s\"\n", dir, finalDirName))
+		}
+
+		// 检查目录名称中的非法字符（使用最终的目录名）
+		if strings.ContainsAny(finalDirName, `<>:"|?*`) {
+			logs = append(logs, fmt.Sprintf("跳过：目录名包含非法字符 \"%s\"\n", finalDirName))
 			continue
 		}
 
-		fullPath := filepath.Join(basePath, dir)
+		fullPath := filepath.Join(basePath, finalDirName)
 
 		// 检查路径长度（Windows 限制）
 		if runtime.GOOS == "windows" && len(fullPath) > 260 {
@@ -131,7 +138,7 @@ func createDirs(basePath string, structure map[string]interface{}) []string {
 				logs = append(logs, fmt.Sprintf("目录已存在：%s\n", fullPath))
 				// 如果目录已存在，继续处理子目录
 				if subDirsMap, ok := subDirs.(map[string]interface{}); ok && subDirsMap != nil {
-					logs = append(logs, createDirs(fullPath, subDirsMap)...)
+					logs = append(logs, createDirs(fullPath, subDirsMap, enablePrefix, prefix)...)
 				}
 				continue
 			} else {
@@ -146,7 +153,7 @@ func createDirs(basePath string, structure map[string]interface{}) []string {
 
 		// 递归处理子目录
 		if subDirsMap, ok := subDirs.(map[string]interface{}); ok && subDirsMap != nil {
-			logs = append(logs, createDirs(fullPath, subDirsMap)...)
+			logs = append(logs, createDirs(fullPath, subDirsMap, enablePrefix, prefix)...)
 		}
 	}
 	return logs
@@ -164,6 +171,8 @@ func main() {
 	// --- 状态变量 ---
 	var targetPath string
 	var loadedDirStructure map[string]interface{}
+	var enablePrefix bool
+	var prefix string
 
 	// --- GUI组件 ---
 	title := widget.NewLabel("=== 目录树生成工具 ===")
@@ -172,6 +181,29 @@ func main() {
 
 	pathLabel := widget.NewLabel("目标路径: 未选择")
 	configLabel := widget.NewLabel("配置文件: 未加载")
+
+	// 前缀功能组件
+	prefixCheck := widget.NewCheck("为所有文件夹添加前缀", nil)
+	prefixEntry := widget.NewEntry()
+	prefixEntry.SetPlaceHolder("输入前缀（例如：C_）")
+	prefixEntry.Disable() // 默认禁用
+
+	// 前缀勾选框事件
+	prefixCheck.OnChanged = func(checked bool) {
+		enablePrefix = checked
+		if checked {
+			prefixEntry.Enable()
+		} else {
+			prefixEntry.Disable()
+			prefixEntry.SetText("")
+			prefix = ""
+		}
+	}
+
+	// 前缀输入框事件
+	prefixEntry.OnChanged = func(text string) {
+		prefix = text
+	}
 
 	selectBtn := widget.NewButton("选择目标文件夹", func() {
 		folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
@@ -300,7 +332,12 @@ func main() {
 		}
 
 		// 最终确认
-		confirmMsg := fmt.Sprintf("即将在以下位置创建目录树：\n%s\n\n预计创建 %d 个目录\n\n是否继续？", targetPath, countTotalDirectories(loadedDirStructure))
+		prefixInfo := ""
+		if enablePrefix && prefix != "" {
+			prefixInfo = fmt.Sprintf("\n前缀设置：为所有文件夹添加前缀 \"%s\"", prefix)
+		}
+
+		confirmMsg := fmt.Sprintf("即将在以下位置创建目录树：\n%s\n\n预计创建 %d 个目录%s\n\n是否继续？", targetPath, countTotalDirectories(loadedDirStructure), prefixInfo)
 		confirmDialog := dialog.NewConfirm("确认创建", confirmMsg, func(confirmed bool) {
 			if !confirmed {
 				return
@@ -309,7 +346,12 @@ func main() {
 			output.Enable()
 			output.SetText("开始生成目录树...\n\n")
 
-			logMessages := createDirs(targetPath, loadedDirStructure)
+			// 显示前缀设置信息
+			if enablePrefix && prefix != "" {
+				output.SetText(output.Text + fmt.Sprintf("前缀设置：为所有文件夹添加前缀 \"%s\"\n\n", prefix))
+			}
+
+			logMessages := createDirs(targetPath, loadedDirStructure, enablePrefix, prefix)
 			allLogs := strings.Join(logMessages, "")
 			output.SetText(output.Text + allLogs)
 
@@ -341,6 +383,12 @@ func main() {
 		title,
 		pathLabel,
 		configLabel,
+		widget.NewSeparator(),
+		// 前缀功能区域
+		widget.NewLabel("前缀设置:"),
+		prefixCheck,
+		container.NewBorder(nil, nil, widget.NewLabel("前缀:"), nil, prefixEntry),
+		widget.NewSeparator(),
 		container.NewGridWithColumns(2, selectBtn, loadConfigBtn),
 		widget.NewSeparator(),
 		createBtn,
